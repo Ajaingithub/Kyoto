@@ -141,8 +141,8 @@ pseudobulk_within_cluster_AJ_no_batch_correction <- function(obj, savedir, group
     plot_list[[2]] <-ggplot(pc_with_metadata, aes_string("PC3", "PC4", label="orig.ident", color=grouping_by)) +
       geom_point(size=5, alpha=0.7) +
       geom_text_repel(size=2) +
-      xlab(paste0("PC1: ",(round(as.vector(summary$importance[2,][3]),4)*100),"% variance")) +
-      ylab(paste0("PC2: ",(round(as.vector(summary$importance[2,][4]),4)*100),"% variance")) +
+      xlab(paste0("PC3: ",(round(as.vector(summary$importance[2,][3]),4)*100),"% variance")) +
+      ylab(paste0("PC4: ",(round(as.vector(summary$importance[2,][4]),4)*100),"% variance")) +
       theme(plot.title = element_text(hjust = 0.5),
             panel.background = element_rect(fill = 'white', colour = 'black'),
             panel.grid.minor = element_line(colour = "grey"),
@@ -151,8 +151,8 @@ pseudobulk_within_cluster_AJ_no_batch_correction <- function(obj, savedir, group
     plot_list[[3]] <-ggplot(pc_with_metadata, aes_string("PC5", "PC6", label="orig.ident", color=grouping_by)) +
       geom_point(size=5, alpha=0.7) +
       geom_text_repel(size=2) +
-      xlab(paste0("PC1: ",(round(as.vector(summary$importance[2,][5]),4)*100),"% variance")) +
-      ylab(paste0("PC2: ",(round(as.vector(summary$importance[2,][6]),4)*100),"% variance")) +
+      xlab(paste0("PC5: ",(round(as.vector(summary$importance[2,][5]),4)*100),"% variance")) +
+      ylab(paste0("PC6: ",(round(as.vector(summary$importance[2,][6]),4)*100),"% variance")) +
       theme(plot.title = element_text(hjust = 0.5),
             panel.background = element_rect(fill = 'white', colour = 'black'),
             panel.grid.minor = element_line(colour = "grey"),

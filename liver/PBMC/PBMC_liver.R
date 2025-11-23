@@ -354,4 +354,84 @@ write.table(naive_CD4_RNA_TCF7, paste0(savedir,"Table/naive_PBC_RNA_TCF7_CD4_CD8
 
 #endregion
 
+#region RAM score
+PBMC <- readRDS("/mnt/data/projects/Kyoto/liver/PBMC/analysis/saveRDS/combined_integrated_mapped.RDS")
+
+savedir = "/mnt/data/projects/Kyoto/liver/PBMC/analysis/naive/"
+dir.create(paste0(savedir,"UMAP"), showWarnings = FALSE, recursive = TRUE)
+pdf(paste0(savedir,"UMAP/PBMC_celltypes.pdf"), width = 10, height = 5.5)
+DimPlot(PBMC, reduction = "ref.umap", group.by = "predicted.celltype.l2", label = T)
+dev.off()
+
+naive_cellnames <- rownames(PBMC@meta.data[grep("CD4 Naive", PBMC@meta.data$predicted.celltype.l2), ])
+PBMC_naive <- subset(PBMC, cells = naive_cellnames)
+
+pdf(paste0(savedir,"UMAP/PBMC_subset_celltypes.pdf"))
+DimPlot(PBMC_naive, reduction = "ref.umap", group.by = "predicted.celltype.l2", label = T)
+dev.off()
+
+### Adding the gene list
+oldvsyoung= read.table("/mnt/data/projects/resource/old_vs_young_Claires_Nature_each_celltype.txt", header = TRUE, sep = "\t")
+oldvsyoung_naive <- oldvsyoung[grep("Core naive CD4 T cell",oldvsyoung$AIFI_L3),]
+naive_aging_high <- oldvsyoung_naive[oldvsyoung_naive$padj < 0.05 & oldvsyoung_naive$log2fc < 0,] ## taking only high older adult for aging
+rm(genelist)
+genelist <- list()
+genelist[[1]] <- naive_aging_high$gene
+
+PBMC_naive[["RNA"]] <- split(PBMC_naive[["RNA"]], f = PBMC_naive$orig.ident)
+PBMC_naive <- NormalizeData(PBMC_naive)
+PBMC_naive <- AddModuleScore(PBMC_naive, genelist)
+# PBC_HCC_naive_req@meta.data <- PBC_HCC_naive_req@meta.data[,grep("Cluster",colnames(PBC_HCC_naive_req@meta.data),invert = TRUE)]
+
+req_index = grep("Cluster",colnames(PBMC_naive@meta.data))
+colnames(PBMC_naive@meta.data)[req_index] = "RAM_coreCD4_naive_score_lfc_0.25_2"
+
+# PBMC_naive@meta.data$condition <- gsub("_.*.","",PBMC_naive@meta.data$orig.ident)
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/RAMcoreCD4naive_aging_boxplot_lfc_0.25_2.pdf"))
+VlnPlot(PBMC_naive, "RAM_coreCD4_naive_score", group.by = "condition", pt.size =0) + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/RAMcoreCD4naive_aging_score_point_lfc_0.25_2.pdf"))
+VlnPlot(PBMC_naive, "RAM_coreCD4_naive_score", group.by = "condition") + geom_boxplot()
+dev.off()
+
+### For young
+naive_aging_low <- oldvsyoung_naive[oldvsyoung_naive$padj < 0.05 & oldvsyoung_naive$log2fc < -0.5,] ## taking only high older adult for aging
+rm(genelist)
+genelist <- list()
+genelist[[1]] <- naive_aging_low$gene
+
+# PBMC_naive <- NormalizeData(PBMC_naive)
+PBMC_naive <- AddModuleScore(PBMC_naive, genelist)
+# PBC_HCC_naive_req@meta.data <- PBC_HCC_naive_req@meta.data[,grep("Cluster",colnames(PBC_HCC_naive_req@meta.data),invert = TRUE)]
+
+req_index = grep("Cluster",colnames(PBMC_naive@meta.data))
+colnames(PBMC_naive@meta.data)[req_index] = "RAM_coreCD4_naive_young_score"
+
+# PBMC_naive@meta.data$condition <- gsub("_.*.","",PBMC_naive@meta.data$orig.ident)
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/RAM_coreCD4_naive_young_score_boxplot.pdf"))
+VlnPlot(PBMC_naive, "RAM_coreCD4_naive_young_score", group.by = "condition", pt.size =0) + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/RAM_coreCD4_naive_young_score_point.pdf"))
+VlnPlot(PBMC_naive, "RAM_coreCD4_naive_young_score", group.by = "condition") + geom_boxplot()
+dev.off()
+
+
+# require_cell = rownames(PBC_HCC_naive_req@meta.data[grep("control",PBC_HCC_naive_req@meta.data$com_condition,invert=TRUE),])
+# PBC_HCC_req2 = subset(PBC_HCC_naive_req, cells = require_cell)
+
+anova_res <- aov(Tn_score ~ treatment_Resp, data = PBC_HCC_naive_req@meta.data)
+summary(anova_res)
+
+dir.create(paste0(savedir,"saveRDS"), showWarnings = FALSE)
+saveRDS(PBC_HCC_naive_req, paste0(savedir,"saveRDS/PBC_HCC_Tfh.RDS"))
+
+#endregion
 

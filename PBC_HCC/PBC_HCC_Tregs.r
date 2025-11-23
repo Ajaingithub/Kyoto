@@ -65,8 +65,9 @@ saveRDS(PBC_HCC, paste0(savedir,"saveRDS/PBC_HCC_Tregs.RDS"))
 PBC_HCC@meta.data$com_condition <- PBC_HCC@meta.data$condition
 
 genelist = list()
-genelist[[1]] = c("IL2RA", "CTLA4", "ICOS", "TNFRSF4", "TNFRSF18", "CCR8", "BATF",
-'PRDM1', "IRF4", "ENTPD1", "LAYN", 'TIGIT', 'HAVCR2')
+genelist[[1]] = c(
+    "IL2RA", "CTLA4", "ICOS", "TNFRSF4", "TNFRSF18", "CCR8", "BATF",
+    'PRDM1', "IRF4", "ENTPD1", "LAYN", 'TIGIT', 'HAVCR2')
 
 PBC_HCC@meta.data[is.na(PBC_HCC@meta.data$com_condition),"com_condition"] <- PBC_HCC@meta.data[is.na(PBC_HCC@meta.data$com_condition),"treatment_Resp"]
 
