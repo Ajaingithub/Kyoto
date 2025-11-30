@@ -85,3 +85,18 @@ TukeyHSD(anova_res)
 
 dir.create(paste0(savedir,"saveRDS"), showWarnings = FALSE)
 saveRDS(PBC_HCC_Tph_req, paste0(savedir,"saveRDS/PBC_HCC_Tfh.RDS"))
+
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/Tfh/"
+PBC_HCC_Tph_req = readRDS(paste0(savedir,"saveRDS/PBC_HCC_Tfh.RDS"))
+
+treatment_levels = c("control","pbc","antiPD1_NR","antiPD1_R")
+PBC_HCC_Tph_req@meta.data$treatment_Resp <- factor(PBC_HCC_Tph_req@meta.data$treatment_Resp, levels = treatment_levels)
+
+pdf(paste0(savedir,"vlnplot/Tfh_score_point_2.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp") + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/Tfh_score_boxplot_2.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+dev.off()
+å

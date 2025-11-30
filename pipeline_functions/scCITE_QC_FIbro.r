@@ -1,12 +1,5 @@
-scCITE_QC <- function(samplepath,Sample,saveDir, min_cells=3, min_genes=200, max_genes=4000, mitopercent=10, ADT_UMI=20000){
-  message(paste("\n######################################## Processsing",Sample,"#####################################################\n"))
-  counts <- Read10X(paste(samplepath,"/count/sample_filtered_feature_bc_matrix/",sep = ""))
-  GEX <- counts$`Gene Expression`
-  ADT <- counts$`Antibody Capture`
-  HTO <- counts$`Multiplexing Capture`
-  control_index <- grep("control|Mouse|Rat",rownames(ADT),ignore.case = T) ## Not considering the control antibody as a variable feature
-  ADT<- ADT[-control_index,]
-  
+scCITE_QC_Fibro <- function(GEX, ADT, Sample,saveDir, min_cells=3, min_genes=200, max_genes=4000, mitopercent=10, ADT_UMI=20000){
+  message(paste("\n######################################## Processsing",Sample,"#####################################################\n"))  
   # Creating the seurat Object
   message(paste("\n Creating the GEX Seurat Object\n"))
   GEX_obj <- CreateSeuratObject(counts = GEX, project = Sample, min.cells = min_cells)

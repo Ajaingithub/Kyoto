@@ -114,3 +114,17 @@ VlnPlot(PBC_HCC_req2, "Tregs_score", group.by = "com_condition", pt.size =0)
 dev.off()
 
 saveRDS(PBC_HCC_req2, paste0(savedir,"saveRDS/PBC_HCC_Tregs_nocontrol.RDS"))
+
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/Tregs/"
+PBC_HCC_Tph_req = readRDS(paste0(savedir,"saveRDS/PBC_HCC_Tregs_nocontrol.RDS"))
+
+treatment_levels = c("pbc","antiPD1_NR","antiPD1_R")
+PBC_HCC_Tph_req@meta.data$com_condition <- factor(PBC_HCC_Tph_req@meta.data$com_condition, levels = treatment_levels)
+
+pdf(paste0(savedir,"vlnplot/Tregs_score_point_2.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tregs_score", group.by = "com_condition") + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/Tregs_score_boxplot_2.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tregs_score", group.by = "com_condition", pt.size =0) + geom_boxplot()
+dev.off()

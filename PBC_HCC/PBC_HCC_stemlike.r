@@ -1,19 +1,19 @@
 library(Seurat)
 library(harmony)
-PBC_HCC = readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA.RDS")
+PBC_HCC <- readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA.RDS")
 
-savedir = "/mnt/data/projects/Kyoto/PBC_HCC/stemlike/"
-dir.create(paste0(savedir,"UMAP/"), showWarnings = FALSE, recursive  = T)
+savedir <- "/mnt/data/projects/Kyoto/PBC_HCC/stemlike/"
+dir.create(paste0(savedir, "UMAP/"), showWarnings = FALSE, recursive = T)
 
 naive_cellnames <- rownames(PBC_HCC@meta.data[grep("Stem-like CD4 T cells|Stem-like CD4 T cell", PBC_HCC@meta.data$celltypes), ])
 PBC_HCC_naive <- subset(PBC_HCC, cells = naive_cellnames)
 
-pdf(paste0(savedir,"UMAP/PBC_HCC_seurat_celltypes.pdf"))
+pdf(paste0(savedir, "UMAP/PBC_HCC_seurat_celltypes.pdf"))
 DimPlot(PBC_HCC_naive, reduction = "umap", group.by = "celltypes", label = T)
 dev.off()
 
 ### Adding Responder and non-responder
-metadata = read.csv("/mnt/data/projects/Kyoto/NatMed_HCC/analysis/GSE206325_sample_annots_Liver_Treated_patients.csv", header = T)
+metadata <- read.csv("/mnt/data/projects/Kyoto/NatMed_HCC/analysis/GSE206325_sample_annots_Liver_Treated_patients.csv", header = T)
 patterns <- metadata$sample_ID
 replacements <- metadata$treatment_Resp
 
@@ -25,29 +25,31 @@ for (i in seq_along(patterns)) {
     PBC_HCC_naive@meta.data$treatment_Resp <- gsub("-", "", PBC_HCC_naive@meta.data$treatment_Resp)
 }
 
-PBC_HCC_naive@meta.data$treatment_Resp[grep("liver",PBC_HCC_naive@meta.data$orig.ident)] <- gsub("_.*.","",grep("liver",PBC_HCC_naive@meta.data$orig.ident,value=TRUE))
-cellnames <- rownames(PBC_HCC_naive@meta.data[grep("^[0-9]",PBC_HCC_naive@meta.data$treatment_Resp, invert = TRUE),])
+PBC_HCC_naive@meta.data$treatment_Resp[grep("liver", PBC_HCC_naive@meta.data$orig.ident)] <- gsub("_.*.", "", grep("liver", PBC_HCC_naive@meta.data$orig.ident, value = TRUE))
+cellnames <- rownames(PBC_HCC_naive@meta.data[grep("^[0-9]", PBC_HCC_naive@meta.data$treatment_Resp, invert = TRUE), ])
 
-cellnames <- rownames(PBC_HCC_naive@meta.data[grep("^[0-9]",PBC_HCC_naive@meta.data$treatment_Resp, invert = TRUE),])
-PBC_HCC_naive_req = subset(PBC_HCC_naive, cells = cellnames)
+cellnames <- rownames(PBC_HCC_naive@meta.data[grep("^[0-9]", PBC_HCC_naive@meta.data$treatment_Resp, invert = TRUE), ])
+PBC_HCC_naive_req <- subset(PBC_HCC_naive, cells = cellnames)
 
 genelist <- list()
-genelist[[1]] <- read.table("/mnt/data/projects/resource/CD4_Tn", header = FALSE)[,1]
+genelist[[1]] <- read.table("/mnt/data/projects/resource/CD4_Tn", header = FALSE)[, 1]
 PBC_HCC_naive_req[["RNA"]] <- split(PBC_HCC_naive_req[["RNA"]], f = PBC_HCC_naive_req$treatment_Resp)
 PBC_HCC_naive_req <- NormalizeData(PBC_HCC_naive_req)
 PBC_HCC_naive_req <- AddModuleScore(PBC_HCC_naive_req, genelist)
 # PBC_HCC_naive_req@meta.data <- PBC_HCC_naive_req@meta.data[,grep("Cluster",colnames(PBC_HCC_naive_req@meta.data),invert = TRUE)]
 
-req_index = grep("Cluster",colnames(PBC_HCC_naive_req@meta.data))
-colnames(PBC_HCC_naive_req@meta.data)[req_index] = "Tn_score"
+req_index <- grep("Cluster", colnames(PBC_HCC_naive_req@meta.data))
+colnames(PBC_HCC_naive_req@meta.data)[req_index] <- "Tn_score"
+
+PBC_HCC_naive_req@meta.data$treatment_Resp <- factor(PBC_HCC_naive_req@meta.data$treatment_Resp, levels = c("control", "pbc", "antiPD1_NR", "antiPD1_R"))
 
 library(ggplot2)
-dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
-pdf(paste0(savedir,"vlnplot/Tn_score_boxplot.pdf"))
-VlnPlot(PBC_HCC_naive_req, "Tn_score", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+dir.create(paste0(savedir, "vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir, "vlnplot/Tn_score_boxplot_2.pdf"))
+VlnPlot(PBC_HCC_naive_req, "Tn_score", group.by = "treatment_Resp", pt.size = 0) + geom_boxplot()
 dev.off()
 
-pdf(paste0(savedir,"vlnplot/Tn_score_point.pdf"))
+pdf(paste0(savedir, "vlnplot/Tn_score_point_2.pdf"))
 VlnPlot(PBC_HCC_naive_req, "Tn_score", group.by = "treatment_Resp") + geom_boxplot()
 dev.off()
 
@@ -71,6 +73,20 @@ TukeyHSD(anova_res)
 # pbc-antiPD1_R        -0.14718226 -0.17331903 -0.12104548 0.0000000
 # pbc-control          -0.15891269 -0.19184368 -0.12598170 0.0000000
 
-dir.create(paste0(savedir,"saveRDS"), showWarnings = FALSE)
-saveRDS(PBC_HCC_naive_req, paste0(savedir,"saveRDS/PBC_HCC_Tfh.RDS"))
+dir.create(paste0(savedir, "saveRDS"), showWarnings = FALSE)
+saveRDS(PBC_HCC_naive_req, paste0(savedir, "saveRDS/PBC_HCC_Tfh.RDS"))
 
+savedir <- "/mnt/data/projects/Kyoto/PBC_HCC/stemlike/"
+PBC_HCC_Tph_req <- readRDS(paste0(savedir, "saveRDS/PBC_HCC_Tfh.RDS"))
+
+treatment_levels <- c("control", "pbc", "antiPD1_NR", "antiPD1_R")
+PBC_HCC_Tph_req@meta.data$treatment_Resp <- factor(PBC_HCC_Tph_req@meta.data$treatment_Resp, levels = treatment_levels)
+
+pdf(paste0(savedir, "vlnplot/Tfh_score_point_2.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp") + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir, "vlnplot/Tfh_score_boxplot_2.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp", pt.size = 0) + geom_boxplot()
+dev.off()
+å
