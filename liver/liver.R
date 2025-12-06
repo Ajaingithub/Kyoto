@@ -962,7 +962,7 @@ CD4_obj <- NormalizeData(CD4_obj)
 CD4_obj <- FindVariableFeatures(CD4_obj)
 CD4_obj <- ScaleData(CD4_obj)
 CD4_obj <- RunPCA(CD4_obj)
-CD4_obj <- RunHarmony(CD4_obj,group.by.vars = "orig.ident")
+CD4_obj <- RunHarmony(CD4_obj, group.by.vars = "orig.ident")
 
 CD4_obj <- RunUMAP(
   CD4_obj,
@@ -1272,6 +1272,30 @@ pdf(paste(savedir, "UMAP/Liver_CD4_UMAP_lineage.pdf", sep = ""), width = 4.5, he
 plot_list
 dev.off()
 
+library(Seurat)
+PBC_CD4 = readRDS("/mnt/data/projects/Kyoto/liver/Tcells/remove_more_mps/CD4/saveRDS/CD4_obj.RDS")
+
+PBC_CD4 <- JoinLayers(PBC_CD4)
+PBC_CD4<- NormalizeData(PBC_CD4)
+PBC_CD4_markers <- FindAllMarkers(PBC_CD4, group.by = "seurat_clusters_new")
+
+savedir = "/mnt/data/projects/Kyoto/liver/Tcells/remove_more_mps/CD4/"
+write.table(PBC_CD4_markers, paste0(savedir,"Table/PBC_CD4_markers_all_marker_new_clus.txt"), sep = "\t", row.names = T, col.names =T, quote = F)
+
+genes = c("LEF1","CCR7","IKZF2","CTLA4","CCL3","EGR1")
+
+rm(plot_list)
+plot_list = list()
+for(i in 1:length(genes)){
+    plot_list[[i]]<- VlnPlot(PBC_CD4, genes[i], group.by = "seurat_clusters_new", pt.size =0) + geom_boxplot()
+}
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/marker_list_new_seu_clus.pdf"))
+plot_list
+dev.off()
+
 #region Bcells
 # B cells: CD19, CD79A, MS4A1 for sorting out B cells
 # Subsequent analysis: CD27, IGHD, ITGAX, FCRL5,  IGHM, IGHG, CD38, CD21
@@ -1432,7 +1456,7 @@ dev.off()
 #### Starting to run on google cloud Kytoto
 # conda activate r_env
 library(Seurat)
-CD4_obj = readRDS("/mnt/data/projects/liver/Tcells/remove_more_mps/CD4/saveRDS/CD4_obj.RDS")
+CD4_obj = readRDS("/mnt/data/projects/Kyoto/liver/Tcells/remove_more_mps/CD4/saveRDS/CD4_obj.RDS")
 
 TFs= c("TCF7", "LEF1", "FOXP3", "TBX21", "MAF", "TOX", "PRDM1", "ZEB2", "EOMES", "BACH2")
 Stem_T= c("IL7R", "CCR7", "GPR183")

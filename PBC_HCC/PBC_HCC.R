@@ -398,7 +398,7 @@ suppressPackageStartupMessages({
     library(bioc2020trajectories)
 })
 
-PBC_HCC <- readRDS("/diazlab/data3/.abhinav/.immune/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA.RDS")
+PBC_HCC <- readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA.RDS")
 
 req_cells <- rownames(PBC_HCC@meta.data[grep("10|11|12|13", PBC_HCC@meta.data$res0.4, invert = TRUE), ])
 PBC_HCC_req <- subset(PBC_HCC, cells = req_cells)
@@ -689,7 +689,191 @@ pdf(paste0(savedir, "featureplots/CD4_pancancer_module_score_genes.pdf"), width 
 FeaturePlot(PBC_HCC_req, paste0("CD4_", filename), reduction = "umap", label = TRUE)
 dev.off()
 
-### CD8
+suppressPackageStartupMessages({
+    library(slingshot)
+    library(SingleCellExperiment)
+    library(RColorBrewer)
+    library(scales)
+    library(viridis)
+    library(UpSetR)
+    library(pheatmap)
+    library(msigdbr)
+    library(fgsea)
+    library(knitr)
+    library(ggplot2)
+    library(gridExtra)
+    library(tradeSeq)
+    library(Seurat)
+    library(bioc2020trajectories)
+})
+
+PBC_HCC <- readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA.RDS")
+PBC_HCC@meta.data[grep("^7$|^8$",PBC_HCC@meta.data$res0.4),"res0.4"] <- 6
+PBC_HCC@meta.data[grep("^9$",PBC_HCC@meta.data$res0.4),"res0.4"] <- 3
+
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/"
+
+pdf(paste0(savedir, "UMAP/dimplot_seurat_clusters_combine.pdf"), width = 4.5, height = 4.5)
+DimPlot(PBC_HCC, group.by = "res0.4", reduction = "umap", label = TRUE, label.size = 5)
+dev.off()
+
+PBC_HCC_markers = FindAllMarkers(PBC_HCC, group.by = "res0.4")
+write.table(PBC_HCC_markers, paste0(savedir, "Table/combine_cluster_markers.txt"), quote = F, row.names = T, col.names = T, sep = "\t")
+
+Set1 <- c("TCF7", "LEF1", "SELL", "CCR7", "FOXP3", "TIGIT")
+Set2 <- c("CTLA4", "IFNG", "TNF", "CCL5", "CD40LG", "GZMK")
+Set3 <- c("HSPA1A", "HSPA1B", "HSPD1", "NR4A1", "HSPA6", "BAG3")
+Set4 <- c("CXCL13", "PDCD1", "TNFSF8", "IL21", "TOX2", "MAF", "GPR183")
+Set5 <- c("ZEB2", "ID2", "XCL1", "XCL2", "CCL4", "GZMA")
+
+sets <- c("Set1","Set2","Set3","Set4","Set5")
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/"
+
+for(i in 1:length(sets)){
+    # pdf(paste0(savedir,"vlnplots/",sets[i],"_PBC_HCC_genes.pdf"))
+    # print(VlnPlot(PBC_HCC,get(sets[i])))
+    # dev.off()
+    pdf(paste0(savedir,"vlnplots/",sets[i],"_PBC_HCC_combine_genes_no_points.pdf"))
+    print(VlnPlot(PBC_HCC,get(sets[i]), pt.size = 0))
+    dev.off()
+}
+
+genelist <- list()
+genelist[[1]] <- read.table("/mnt/data/projects/resource/CD4_Tfh", header = FALSE)[,1]
+genelist[[2]] <- read.table("/mnt/data/projects/resource/CD4_Tn", header = FALSE)[, 1]
+genelist[[3]] = c(
+    "IL2RA", "CTLA4", "ICOS", "TNFRSF4", "TNFRSF18", "CCR8", "BATF",
+    'PRDM1', "IRF4", "ENTPD1", "LAYN", 'TIGIT', 'HAVCR2')
+genelist[[4]] = c("GZMA", "GZMB", "GZMK", "PRF1", "NKG7")
+genelist[[5]] = c(
+    "IFIT1", "IFIT2", "IFIT3", "EIF2AK2", "RSAD2", "ISG15", "IFITM1", "OAS1",
+    "OAS2", "ISG20", "IRF7", "XAF1", "USP18", "CMPK2", "ZBP1", "GBP6", "IFI35", 
+    "LAMP3", "IFI44", "IFI44L")
+
+genesetname = c("Tfh","Tn","Treg","cytotoxic","ISG")
+
+### Adding Responder and non-responder
+metadata = read.csv("/mnt/data/projects/Kyoto/NatMed_HCC/analysis/GSE206325_sample_annots_Liver_Treated_patients.csv", header = T)
+patterns <- metadata$sample_ID
+replacements <- metadata$treatment_Resp
+
+library(stringr)
+PBC_HCC@meta.data$treatment_Resp <- PBC_HCC@meta.data$cell_to_sample_ID
+for (i in seq_along(patterns)) {
+    pattern <- paste0("\\b", patterns[i], "\\b")
+    PBC_HCC@meta.data$treatment_Resp <- str_replace_all(PBC_HCC@meta.data$treatment_Resp, pattern, replacements[i])
+    PBC_HCC@meta.data$treatment_Resp <- gsub("-", "", PBC_HCC@meta.data$treatment_Resp)
+}
+
+PBC_HCC@meta.data$treatment_Resp[grep("liver",PBC_HCC@meta.data$orig.ident)] <- gsub("_.*.","",grep("liver",PBC_HCC@meta.data$orig.ident,value=TRUE))
+cellnames <- rownames(PBC_HCC@meta.data[grep("^[0-9]",PBC_HCC@meta.data$treatment_Resp, invert = TRUE),])
+
+cellnames <- rownames(PBC_HCC@meta.data[grep("^[0-9]",PBC_HCC@meta.data$treatment_Resp, invert = TRUE),])
+PBC_HCC_req = subset(PBC_HCC, cells = cellnames)
+
+PBC_HCC_req[["RNA"]] <- split(PBC_HCC_req[["RNA"]], f = PBC_HCC_req$treatment_Resp)
+PBC_HCC_req <- NormalizeData(PBC_HCC_req)
+PBC_HCC_req <- AddModuleScore(PBC_HCC_req, genelist)
+# PBC_HCC_Tph_req@meta.data <- PBC_HCC_Tph_req@meta.data[,grep("Cluster",colnames(PBC_HCC_Tph_req@meta.data),invert = TRUE)]
+
+req_index = grep("Cluster",colnames(PBC_HCC_req@meta.data))
+colnames(PBC_HCC_req@meta.data)[req_index] = genesetname
+
+# saveRDS(PBC_HCC_req, paste0(savedir,"saveRDS/PBC_HCC_CCA_required.RDS"))
+
+PBC_HCC_req@meta.data$treatment_Resp <- factor(PBC_HCC_req@meta.data$treatment_Resp, levels = c("control","pbc","antiPD1_NR","antiPD1_R"))
+
+plot_list = list()
+for(i in 1:length(genesetname)){
+    plot_list[[i]]<- VlnPlot(PBC_HCC_req, genesetname[i], group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+}
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/geneset_boxplot.pdf"))
+plot_list
+dev.off()
+
+rm(plot_list)
+plot_list = list()
+for(i in 1:length(genesetname)){
+    plot_list[[i]]<- VlnPlot(PBC_HCC_req, genesetname[i], group.by = "res0.4", pt.size =0) + geom_boxplot()
+}
+
+rm(plot_list)
+plot_list = list()
+for(i in 1:length(genesetname)){
+    plot_list[[i]]<- VlnPlot(PBC_HCC_req, genesetname[i], group.by = "res0.4", pt.size =0) + geom_boxplot()
+}
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/geneset_boxplot_res0.4.pdf"))
+plot_list
+dev.off()
+
+PBC_HCC_req@meta.data$res0.4_treatment_Resp <- paste0(PBC_HCC_req@meta.data$res0.4, "_",PBC_HCC_req@meta.data$treatment_Resp)
+
+rm(plot_list)
+plot_list = list()
+for(i in 1:length(genesetname)){
+plot_list[[i]] <- VlnPlot(
+    PBC_HCC_req,
+    genesetname[i],
+    group.by = "res0.4_treatment_Resp",
+    pt.size = 0
+) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  scale_fill_manual(
+    values = c(
+      rep("blue", 4),
+      rep("red", 4),
+      rep("green", 4),
+      rep("yellow", 4),
+      rep("magenta", 4),
+      rep("orange", 4),
+      rep("darkgreen", 4)
+    )
+  ) + NoLegend()
+}
+
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/geneset_boxplot_treatment_response_res0.4.pdf"), width = 10, height = 5)
+plot_list
+dev.off()
+
+
+# pdf(paste0(savedir,"vlnplot/geneset_point.pdf"))
+# VlnPlot(PBC_HCC_req, genesetname, group.by = "treatment_Resp") + geom_boxplot()
+# dev.off()
+
+# require_cell = rownames(PBC_HCC_Tph_req@meta.data[grep("control",PBC_HCC_Tph_req@meta.data$com_condition,invert=TRUE),])
+# PBC_HCC_req2 = subset(PBC_HCC_Tph_req, cells = require_cell)
+
+anova_res <- aov(Tfh_score ~ treatment_Resp, data = PBC_HCC_Tph_req@meta.data)
+summary(anova_res)
+
+PBC_HCC[["RNA"]] <- split(PBC_HCC[["RNA"]], f = PBC_HCC$treatment_Resp)
+PBC_HCC_Tph_req <- NormalizeData(PBC_HCC_Tph_req)
+PBC_HCC_Tph_req <- AddModuleScore(PBC_HCC_Tph_req, genelist)
+# PBC_HCC_Tph_req@meta.data <- PBC_HCC_Tph_req@meta.data[,grep("Cluster",colnames(PBC_HCC_Tph_req@meta.data),invert = TRUE)]
+
+req_index = grep("Cluster",colnames(PBC_HCC_Tph_req@meta.data))
+colnames(PBC_HCC_Tph_req@meta.data)[req_index] = "Tfh_score"
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/Tfh_score_boxplot.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/Tfh_score_point.pdf"))
+VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp") + geom_boxplot()
+dev.off()
+
+
+
+#region CD8
 DefaultAssay(PBC_HCC) <- "RNA"
 rm(markers)
 markers <- list()
