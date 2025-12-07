@@ -734,7 +734,7 @@ for(i in 1:length(sets)){
     # print(VlnPlot(PBC_HCC,get(sets[i])))
     # dev.off()
     pdf(paste0(savedir,"vlnplots/",sets[i],"_PBC_HCC_combine_genes_no_points.pdf"))
-    print(VlnPlot(PBC_HCC,get(sets[i]), pt.size = 0))
+    print(VlnPlot(PBC_HCC_req,get(sets[i]), group.by = "res0.4", pt.size = 0))
     dev.off()
 }
 
@@ -751,6 +751,11 @@ genelist[[5]] = c(
     "LAMP3", "IFI44", "IFI44L")
 
 genesetname = c("Tfh","Tn","Treg","cytotoxic","ISG")
+
+rm(genelist)
+genelist <- list()
+genelist[[1]] = c("HSPA1A", "HSPA1B", "HSPH1", "NR4A1", "HSPA6", "BAG3", "HSPE1", "DNAJB4", "DNAJA1")
+genesetname = c("Stress_response")
 
 ### Adding Responder and non-responder
 metadata = read.csv("/mnt/data/projects/Kyoto/NatMed_HCC/analysis/GSE206325_sample_annots_Liver_Treated_patients.csv", header = T)
@@ -780,6 +785,10 @@ req_index = grep("Cluster",colnames(PBC_HCC_req@meta.data))
 colnames(PBC_HCC_req@meta.data)[req_index] = genesetname
 
 # saveRDS(PBC_HCC_req, paste0(savedir,"saveRDS/PBC_HCC_CCA_required.RDS"))
+# library(Seurat)
+# library(ggplot2)
+# savedir = "/mnt/data/projects/Kyoto/PBC_HCC/" 
+# PBC_HCC_req = readRDS(paste0(savedir,"saveRDS/PBC_HCC_CCA_required.RDS"))
 
 PBC_HCC_req@meta.data$treatment_Resp <- factor(PBC_HCC_req@meta.data$treatment_Resp, levels = c("control","pbc","antiPD1_NR","antiPD1_R"))
 
@@ -790,7 +799,7 @@ for(i in 1:length(genesetname)){
 
 library(ggplot2)
 dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
-pdf(paste0(savedir,"vlnplot/geneset_boxplot.pdf"))
+pdf(paste0(savedir,"vlnplot/Stress_response_geneset_boxplot.pdf"))
 plot_list
 dev.off()
 
@@ -800,15 +809,9 @@ for(i in 1:length(genesetname)){
     plot_list[[i]]<- VlnPlot(PBC_HCC_req, genesetname[i], group.by = "res0.4", pt.size =0) + geom_boxplot()
 }
 
-rm(plot_list)
-plot_list = list()
-for(i in 1:length(genesetname)){
-    plot_list[[i]]<- VlnPlot(PBC_HCC_req, genesetname[i], group.by = "res0.4", pt.size =0) + geom_boxplot()
-}
-
 library(ggplot2)
 dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
-pdf(paste0(savedir,"vlnplot/geneset_boxplot_res0.4.pdf"))
+pdf(paste0(savedir,"vlnplot/Stress_response_geneset_boxplot_res0.4.pdf"))
 plot_list
 dev.off()
 
@@ -838,7 +841,7 @@ plot_list[[i]] <- VlnPlot(
 }
 
 dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
-pdf(paste0(savedir,"vlnplot/geneset_boxplot_treatment_response_res0.4.pdf"), width = 10, height = 5)
+pdf(paste0(savedir,"vlnplot/stress_response_geneset_boxplot_treatment_response_res0.4.pdf"), width = 10, height = 5)
 plot_list
 dev.off()
 
