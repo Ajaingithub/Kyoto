@@ -89,4 +89,45 @@ dev.off()
 pdf(paste0(savedir, "vlnplot/Tfh_score_boxplot_2.pdf"))
 VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp", pt.size = 0) + geom_boxplot()
 dev.off()
-å
+
+#region Combined PBC_HCC for 7 clus
+library(Seurat)
+PBC_HCC = readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA_required.RDS")
+dir.create(savedir, showWarnings =  FALSE)
+setwd(savedir)
+
+dir.create("UMAP", showWarnings =  FALSE)  
+pdf(paste0(savedir,"UMAP/PBC_HCC.pdf"))
+DimPlot(PBC_HCC, reduction = "umap", group.by = "res0.4", label = T, label.size = 5)
+dev.off()
+
+# stemlike with cluster 5
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/stemlike/stemlike_new_cluster/"
+stemlike_cellnames = rownames(PBC_HCC@meta.data[grep("^6$",PBC_HCC@meta.data$res0.4),])
+stemlike = subset(PBC_HCC, cells = stemlike_cellnames)
+
+stemlike <- NormalizeData(stemlike)
+
+rm(genelist)
+genelist <- list()
+genelist[[1]] <- read.table("/mnt/data/projects/resource/CD4_Tn", header = FALSE)[, 1]
+
+stemlike <- AddModuleScore(stemlike, genelist)
+
+req_index = grep("Cluster",colnames(stemlike@meta.data))
+colnames(stemlike@meta.data)[req_index] = "stemlike_score_clus6"
+
+stemlike@meta.data$treatment_Resp = factor(stemlike@meta.data$treatment_Resp, levels = c("control","pbc","antiPD1_NR","antiPD1_R"))
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE, recursive = TRUE)
+pdf(paste0(savedir,"vlnplot/stemlike_score_boxplot_clus6.pdf"))
+VlnPlot(stemlike, "stemlike_score_clus6", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/stemlike_score_point_clus6.pdf"))
+VlnPlot(stemlike, "stemlike_score_clus6", group.by = "treatment_Resp") + geom_boxplot()
+dev.off()
+
+dir.create(paste0(savedir,"saveRDS_obj"), showWarnings = FALSE)
+saveRDS(stemlike, paste0(savedir,"saveRDS_obj/stemlike_new_clus6.RDS"))

@@ -128,3 +128,45 @@ dev.off()
 pdf(paste0(savedir,"vlnplot/Tregs_score_boxplot_2.pdf"))
 VlnPlot(PBC_HCC_Tph_req, "Tregs_score", group.by = "com_condition", pt.size =0) + geom_boxplot()
 dev.off()
+
+#region Combined PBC_HCC for 7 clus
+library(Seurat)
+PBC_HCC = readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA_required.RDS")
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/Tregs/Tregs_new_cluster/"
+dir.create(savedir, showWarnings =  FALSE)
+setwd(savedir)
+
+dir.create("UMAP", showWarnings =  FALSE)
+pdf(paste0(savedir,"UMAP/PBC_HCC.pdf"))
+DimPlot(PBC_HCC, reduction = "umap", group.by = "res0.4", label = T, label.size = 5)
+dev.off()
+
+Tregs_cellnames = rownames(PBC_HCC@meta.data[grep("^0$",PBC_HCC@meta.data$res0.4),])
+Tregs = subset(PBC_HCC, cells = Tregs_cellnames)
+Tregs <- NormalizeData(Tregs)
+
+rm(genelist)
+genelist = list()
+genelist[[1]] = c(
+    "IL2RA", "CTLA4", "ICOS", "TNFRSF4", "TNFRSF18", "CCR8", "BATF",
+    'PRDM1', "IRF4", "ENTPD1", "LAYN", 'TIGIT', 'HAVCR2')
+
+Tregs <- AddModuleScore(Tregs, genelist)
+
+req_index = grep("Cluster",colnames(Tregs@meta.data))
+colnames(Tregs@meta.data)[req_index] = "Tregs_score_clus0"
+
+Tregs@meta.data$treatment_Resp = factor(Tregs@meta.data$treatment_Resp, levels = c("control","pbc","antiPD1_NR","antiPD1_R"))
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/Treg_score_boxplot_clus0.pdf"))
+VlnPlot(Tregs, "Tregs_score_clus0", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/Treg_score_point_clus0.pdf"))
+VlnPlot(Tregs, "Tregs_score_clus0", group.by = "treatment_Resp") + geom_boxplot()
+dev.off()
+
+dir.create(paste0(savedir,"saveRDS_obj"), showWarnings = FALSE)
+saveRDS(Tregs, paste0(savedir,"saveRDS_obj/Tregs_new_clus0.RDS"))

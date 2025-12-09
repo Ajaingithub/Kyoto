@@ -99,4 +99,45 @@ dev.off()
 pdf(paste0(savedir,"vlnplot/Tfh_score_boxplot_2.pdf"))
 VlnPlot(PBC_HCC_Tph_req, "Tfh_score", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
 dev.off()
-å
+
+#region Combined PBC_HCC for 7 clus
+library(Seurat)
+PBC_HCC = readRDS("/mnt/data/projects/Kyoto/PBC_HCC/saveRDS/PBC_HCC_CCA_required.RDS")
+savedir = "/mnt/data/projects/Kyoto/PBC_HCC/Tfh/Tfh_new_cluster/"
+dir.create(savedir, showWarnings =  FALSE)
+setwd(savedir)
+
+dir.create("UMAP", showWarnings =  FALSE)  
+pdf(paste0(savedir,"UMAP/PBC_HCC.pdf"))
+DimPlot(PBC_HCC, reduction = "umap", group.by = "res0.4", label = T, label.size = 5)
+dev.off()
+
+# Tfh with cluster 5
+Tfh_cellnames = rownames(PBC_HCC@meta.data[grep("^5$",PBC_HCC@meta.data$res0.4),])
+Tfh = subset(PBC_HCC, cells = Tfh_cellnames)
+
+Tfh <- NormalizeData(Tfh)
+
+rm(genelist)
+genelist = list()
+genelist[[1]] <- read.table("/mnt/data/projects/resource/CD4_Tfh", header = FALSE)[,1]
+
+Tfh <- AddModuleScore(Tfh, genelist)
+
+req_index = grep("Cluster",colnames(Tfh@meta.data))
+colnames(Tfh@meta.data)[req_index] = "Tfh_score_clus5"
+
+Tfh@meta.data$treatment_Resp = factor(Tfh@meta.data$treatment_Resp, levels = c("control","pbc","antiPD1_NR","antiPD1_R"))
+
+library(ggplot2)
+dir.create(paste0(savedir,"vlnplot"), showWarnings = FALSE)
+pdf(paste0(savedir,"vlnplot/Tfh_score_boxplot_clus5.pdf"))
+VlnPlot(Tfh, "Tfh_score_clus5", group.by = "treatment_Resp", pt.size =0) + geom_boxplot()
+dev.off()
+
+pdf(paste0(savedir,"vlnplot/Tfh_score_point_clus5.pdf"))
+VlnPlot(Tfh, "Tfh_score_clus5", group.by = "treatment_Resp") + geom_boxplot()
+dev.off()
+
+dir.create(paste0(savedir,"saveRDS_obj"), showWarnings = FALSE)
+saveRDS(Tfh, paste0(savedir,"saveRDS_obj/Tfh_new_clus0.RDS"))
